@@ -1,0 +1,27 @@
+common:
+  msg_source: 1                                         #0: not use Lidar
+                                                        #1: packet message comes from online Lidar
+                                                        #2: packet message comes from Pcap file
+lidar:
+  - driver:
+      lidar_type: LIDAR_HA25                            #LiDAR type - LIDAR_HA25 LIDAR_HA50
+      msop_port: 9000                                   #udp port of lidar
+      h_start_angle: -360                               #herizon Start angle of point cloud
+      h_end_angle: 360                                  #herizon End angle of point cloud 
+      min_distance: 0.0                                #Minimum distance of point cloud
+      max_distance: 200                                 #Maximum distance of point cloud
+      pcap_path: /home/wenjie/project/pcap/ha25/0127.pcap                                       #
+      pcap_repeat: false                                #                                    
+      pcap_rate: 20.0                                   #
+                                                        #
+      
+    ros:
+      ros_frame_id: base_laser                              #Frame id of packet message and point cloud message
+      send_laserscan_ros: true                              #true: Send point cloud through ROS or ROS2
+      use_lidar_clock: false                                #True--Use the lidar clock as the message timestamp
+      ros_send_laserscan_topic: /ha25_laser                 #Topic used to send point cloud through ROS
+      enable_service_ros: true                              #true: Send point cloud through ROS or ROS2
+      ros_service_lidar_type: /ha25_device_status           #Topic used to send point cloud through ROS
+      ros_service_get_time_type: /ha25_get_device_time_status  #Topic used to send point cloud through ROS
+      ros_service_set_time_type: /ha25_set_device_time_status  #Topic used to send point cloud through ROS
+

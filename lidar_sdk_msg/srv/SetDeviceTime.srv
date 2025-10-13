@@ -1,0 +1,9 @@
+int16  year     # 2000-2100
+int16  month    # 1-12
+int16  date     # 1-31
+int16  hour     # 0-23
+int16  minute   # 0-59
+int16  second   # 0-59
+int16  ms       # 0-999
+---
+bool status
