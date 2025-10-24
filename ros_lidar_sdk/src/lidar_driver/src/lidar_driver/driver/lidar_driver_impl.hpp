@@ -600,7 +600,7 @@ inline void LidarDriverImpl::SplitFrame()
   std::shared_ptr<Laser_msg> msg = m_pDecoder->GetLaserScan();
   //if (msg->ranges.size() > 0)
   {
-    SetLaserScanHeader(msg);
+    //SetLaserScanHeader(msg);
     m_put_laserscan_callback(msg);
     m_pDecoder->SetLaserScan(GetLaserScan());
   }

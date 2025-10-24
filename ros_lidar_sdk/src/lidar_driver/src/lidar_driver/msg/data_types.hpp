@@ -68,7 +68,7 @@ struct Laser_msg{
         intensities.push_back(intensity);
     }
     std::string frame_id{"base_laser"};
-    uint32_t timestamp{0};               ///<:雷达时间戳(毫秒)
+    uint64_t timestamp{0};               ///<:雷达时间戳(毫秒)
     float angle_min{0.f};                ///<:测量起始角度(弧度制)
     float angle_max{0.f};                ///<:测量终止角度(弧度制)
     float angle_increment{0.f};          ///<:角度分辨率(弧度制)
