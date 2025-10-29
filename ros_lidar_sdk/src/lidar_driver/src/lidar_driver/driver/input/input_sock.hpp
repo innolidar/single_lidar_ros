@@ -95,7 +95,7 @@ inline int InputSock::CreateSocket(uint16_t port, const std::string& hostIp, con
   memset(&m_addr_serv, 0, sizeof(m_addr_serv));
   m_addr_serv.sin_family = AF_INET;
   m_addr_serv.sin_port = htons(port);
-  m_addr_serv.sin_addr.s_addr = htonl(INADDR_ANY);
+  m_addr_serv.sin_addr.s_addr = INADDR_ANY;
   m_addr_len = sizeof(m_addr_serv);
   ret = bind(fd, (struct sockaddr*)&m_addr_serv, sizeof(m_addr_serv));
   if (ret < 0)

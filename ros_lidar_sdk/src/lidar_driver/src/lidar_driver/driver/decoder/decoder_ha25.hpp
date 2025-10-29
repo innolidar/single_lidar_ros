@@ -81,17 +81,6 @@ public:
   }
   bool IsNewFrame(const uint16_t &value)
   {
-    /*if(m_start==false)
-    {
-      m_start=true;
-      m_last_angle=value;
-      return false;
-    }
-    if(m_last_angle>=value)
-    {
-        m_last_angle=value;
-        return true;
-    }*/
     if(m_start==false)
     {
       m_start=true;
@@ -188,7 +177,6 @@ inline bool DecoderHA25::DecodeMsopPacket(const uint8_t* pkt, size_t size, uint1
   const HA25MsopPacket& packet = *(const HA25MsopPacket*)(pkt);
   uint8_t szData[8]{0};
   memcpy(szData,packet.header.ms,6);
-    //m_start_timestamp=packet.header.ms;
   uint64_t  timestamp=*(uint64_t*)szData;
   if(m_start_timestamp==0)
   {
@@ -203,20 +191,17 @@ inline bool DecoderHA25::DecodeMsopPacket(const uint8_t* pkt, size_t size, uint1
     int32_t angle_h=packet.header.angle_start+i*25;
     if (this->m_splite_strategy.IsNewFrame(angle_h))
     {
-      this->m_laser_msg->timestamp=m_start_timestamp; 
-      //this->m_laser_msg->timestamp=m_start_sys_timestamp;                                      ///<:雷达时间戳(毫秒)
+      this->m_laser_msg->timestamp=m_start_timestamp;                                       ///<:雷达时间戳(毫秒)
       this->m_laser_msg->angle_min=this->m_const_param.LIDAR_START_ANGLE;   ///<:测量起始角度(弧度制)
       this->m_laser_msg->angle_max=this->m_const_param.LIDAR_END_ANGLE;                                 ///<:测量终止角度(弧度制)
-      this->m_laser_msg->angle_increment=this->m_const_param.LIDAR_ANGLE_INCREMENT;                            ///<:角度分辨率(弧度制)
-      //this->m_laser_msg->time_increment{0.f};                              ///<:时间分辨率(单位 ms)
-      //this->m_laser_msg->scan_time=static_cast<float>(packet.header.ms-m_start_timestamp) * 0.75f;                                  ///<:扫描周期(单位 ms)
-      this->m_laser_msg->scan_time=static_cast<float>(timestamp-m_start_timestamp) * 0.75f;  
+      this->m_laser_msg->angle_increment=this->m_const_param.LIDAR_ANGLE_INCREMENT;                            ///<:角度分辨率(弧度制)                              
+      //this->m_laser_msg->scan_time=static_cast<float>(packet.header.ms-m_start_timestamp) * 0.75f;  ///<:时间分辨率(单位 ms)                                ///<:扫描周期(单位 ms)
+      this->m_laser_msg->scan_time=50.0f;  
       this->m_laser_msg->time_increment=this->m_laser_msg->scan_time / (float)this->m_laser_msg->ranges.size();
       this->m_laser_msg->range_min= this->m_const_param.LIDAR_RANGE_MIN;                                  ///<:最小有效测量范围(单位 m)
       this->m_laser_msg->range_max= this->m_const_param.LIDAR_RANGE_MAX;                                    ///<:最大有效测量范围(单位 m)
       
       this->m_splite_frame_callback();
-      //m_start_timestamp=packet.header.ms;
       m_start_timestamp=timestamp;
       m_start_sys_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count();

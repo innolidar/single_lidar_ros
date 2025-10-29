@@ -137,6 +137,10 @@ inline void InputPcap::SetFilePos(fpos_t* pos)
 
 inline int  InputPcap::RecvPacket(char* buffer,const int &len)
 {
+  if (m_pcap == NULL)
+  {
+    return -1;
+  }
   struct pcap_pkthdr* header;
   const uint8_t* pkt_data;
   int ret = pcap_next_ex(m_pcap, &header, &pkt_data);
