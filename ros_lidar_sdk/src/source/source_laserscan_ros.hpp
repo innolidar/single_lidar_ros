@@ -19,7 +19,7 @@ inline uint64_t ConvertToMilliseconds(
     struct tm timeinfo = {
         .tm_sec = static_cast<int>(second),
         .tm_min = static_cast<int>(minute),
-        .tm_hour = static_cast<int>(hour-8),
+        .tm_hour = static_cast<int>(hour),
         .tm_mday = static_cast<int>(day),
         .tm_mon = static_cast<int>(month - 1),  // 月份范围0-11
         .tm_year = static_cast<int>(year - 1900) // 年份从1900开始
@@ -154,7 +154,7 @@ inline bool DestinationLaserScanRos::GetDeviceTimeStatus(ros_lidar_sdk::GetDevic
       res.year=utc_time->tm_year+1900;
       res.month=utc_time->tm_mon+1;
       res.date=utc_time->tm_mday;
-      res.hour=utc_time->tm_hour+8;
+      res.hour=utc_time->tm_hour;
       res.minute=utc_time->tm_min;
       res.second=utc_time->tm_sec;
       res.ms=(ms%1000);
@@ -205,7 +205,7 @@ inline uint64_t ConvertToMilliseconds(
     struct tm timeinfo = {
         .tm_sec = static_cast<int>(second),
         .tm_min = static_cast<int>(minute),
-        .tm_hour = static_cast<int>(hour-8),
+        .tm_hour = static_cast<int>(hour),
         .tm_mday = static_cast<int>(day),
         .tm_mon = static_cast<int>(month - 1),  // 月份范围0-11
         .tm_year = static_cast<int>(year - 1900) // 年份从1900开始
@@ -361,7 +361,7 @@ void DestinationLaserScanRos::GetDeviceTimeStatus(const std::shared_ptr<lidar_sd
       res->year=utc_time->tm_year+1900;
       res->month=utc_time->tm_mon+1;
       res->date=utc_time->tm_mday;
-      res->hour=utc_time->tm_hour+8;
+      res->hour=utc_time->tm_hour;
       res->minute=utc_time->tm_min;
       res->second=utc_time->tm_sec;
       res->ms=(ms%1000);
