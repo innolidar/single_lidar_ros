@@ -19,8 +19,8 @@ if(${ENABLE_TRANSFORM})
   add_definitions("-DENABLE_TRANSFORM")
 endif(${ENABLE_TRANSFORM})
 
-set(lidar_driver_INCLUDE_DIRS "/home/wenjie/project/single_line_ws/single_line_ws/ros2_ws/src/ros_lidar_sdk/src/lidar_driver/src;/usr/local/ros_lidar_sdk/include")
-set(lidar_driver_INCLUDE_DIRS "/home/wenjie/project/single_line_ws/single_line_ws/ros2_ws/src/ros_lidar_sdk/src/lidar_driver/src;/usr/local/ros_lidar_sdk/include")
+set(lidar_driver_INCLUDE_DIRS "/home/liang/work/00_github/00_singleLidar/single_lidar_ros/ros_lidar_sdk/src/lidar_driver/src;/usr/local/ros_lidar_sdk/include")
+set(lidar_driver_INCLUDE_DIRS "/home/liang/work/00_github/00_singleLidar/single_lidar_ros/ros_lidar_sdk/src/lidar_driver/src;/usr/local/ros_lidar_sdk/include")
 
 set(lidar_driver_LIBRARIES "pthread;pcap")
 set(lidar_driver_LIBRARIES "pthread;pcap")

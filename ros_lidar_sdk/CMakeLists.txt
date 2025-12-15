@@ -64,9 +64,11 @@ endif()
 
 if(${ENABLE_ROS2})
 if($ENV{ROS_DISTRO} STREQUAL "humble")  # the ros2 humble requires c++17
-add_definitions(-std=c++17)
+  add_definitions(-std=c++17)
+elseif($ENV{ROS_DISTRO} STREQUAL "jazzy")
+  add_definitions(-std=c++17)
 else()
-add_definitions(-std=c++14)
+  add_definitions(-std=c++14)
 endif()
 endif(${ENABLE_ROS2})
 

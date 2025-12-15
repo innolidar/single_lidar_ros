@@ -13,7 +13,7 @@ lidar:
       pcap_path: /home/wenjie/project/pcap/ha25/0127.pcap                                       #
       pcap_repeat: false                                #                                    
       pcap_rate: 20.0                                   #
-                                                        #
+      enable_point_cloud_filter : true                 #
       
     ros:
       ros_frame_id: base_laser                              #Frame id of packet message and point cloud message

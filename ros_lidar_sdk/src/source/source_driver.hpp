@@ -35,9 +35,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "source/source.hpp"
 #include <lidar_driver/api/lidar_driver.hpp>
 #include <lidar_driver/utility/sync_queue.hpp>
+#include <cmath>
 
 namespace lidar
 {
+
+const int TRAILING_POINT_MAX_ANGLE_OFFSET = 15;
+const float TRAILING_POINT_MAX_DIST_OFFSET = 0.200f;
+const float TRAILING_POINT_MIN_DIST_OFFSET  = 0.020f;
+const float TRAILING_POINT_POW_FACTOR  =  0.8f;
+const float POINT_CLOUD_DIST_SMOOTHING_FILTER_LIMIT_VALUE = 0.030f;
+const int  POINT_CLOUD_PULSE_SMOOTHING_FILTER_LIMIT_VALUE = 50u;
 
 class SourceDriver : public Source
 {
@@ -56,9 +64,11 @@ protected:
 
   std::shared_ptr<Laser_msg> GetLaserScan(void);
   void PutLaserScan(std::shared_ptr<Laser_msg>  msg);
+  void HandlerTrailingFilter(std::shared_ptr<Laser_msg> msg);
   void PutException(const lidar::Error& msg);
   void ProcessLaserScan();
 
+  bool                                              m_enable_point_cloud_filter;
   bool                                              m_to_exit_process;
   std::thread                                       m_laserscan_process_thread;
   std::shared_ptr<LidarDriver>                      m_pShareDriver;
@@ -67,7 +77,7 @@ protected:
 };
 
 SourceDriver::SourceDriver(SourceType src_type)
-  : Source(src_type), m_to_exit_process(false)
+  : Source(src_type), m_to_exit_process(false),m_enable_point_cloud_filter(false)
 {
 
 }
@@ -91,6 +101,7 @@ inline void SourceDriver::Init(const YAML::Node& config)
   driver_param.lidar_type = strToLidarType(lidar_type);
 
   // decoder
+  yamlRead<bool>(driver_config,  "enable_point_cloud_filter", m_enable_point_cloud_filter, false);
   yamlRead<bool>(driver_config,  "use_lidar_clock", driver_param.decoder_param.use_lidar_clock, false);
   yamlRead<float>(driver_config, "min_distance", driver_param.decoder_param.min_distance, 0.2);
   yamlRead<float>(driver_config, "max_distance", driver_param.decoder_param.max_distance, 200);
@@ -105,6 +116,10 @@ inline void SourceDriver::Init(const YAML::Node& config)
       driver_param.input_type = InputType::PCAP_FILE;
       break;
   }
+  TOOL_INFO << "------------------------------------------------------" << TOOL_REND;
+  TOOL_INFO << "             Lidar Filter Parameters " << TOOL_REND;
+  TOOL_INFOL << "enable_point_cloud_filter:"<< m_enable_point_cloud_filter<< TOOL_REND;
+  TOOL_INFO << "------------------------------------------------------" << TOOL_REND;
 
   driver_param.print();
   m_pShareDriver=std::make_shared<LidarDriver>();
@@ -179,10 +194,139 @@ void SourceDriver::ProcessLaserScan()
     {
       continue;
     }
+
+    if(m_enable_point_cloud_filter == true)
+    {
+      HandlerTrailingFilter(msg);
+    }
+
     SendLaserScan(msg);
     m_free_laserscan_queue.Push(msg);
   }
 }
+
+
+void SourceDriver::HandlerTrailingFilter(std::shared_ptr<Laser_msg> msg)
+{
+    float mean_of_pre_dist = 0.0f, mean_of_sub_dist = 0.0f;
+    uint16_t mean_of_pre_pulse = 0.0f, mean_of_sub_pulse = 0.0f;
+    uint8_t ret = 0x00;
+    auto &ranges = msg.get()->ranges;
+    auto &intensities = msg.get()->intensities;
+
+#if 1    
+    for(uint16_t pos = 0x00; pos < msg.get()->ranges.size(); pos++)
+    {
+
+      /* if dist == 0 or pulse == 0  continue */
+      if((ranges[pos] == 0.0f ) || (intensities[pos] == 0x00u ))
+      {
+        continue;
+      }
+
+      /* first angle filter  */
+      if((ranges[pos] != 0.0f ) && (ranges[pos+1] != 0.0f ))
+      {
+        /* angle filter*/
+        float angle = atan((ranges[pos] * sin(0.25f* M_PI /180.0f)) / (ranges[pos+1] - ranges[pos] *cos(0.25f* M_PI /180.0f))) *180.0f / M_PI;
+        
+        if(abs(angle) <= TRAILING_POINT_MAX_ANGLE_OFFSET)
+        {
+            ranges[pos] = 0.0f;
+            continue;
+        }
+      }
+
+      /* dist mean error is [20 -100] */
+      if((pos >= 4) && (pos < ranges.size() -3))
+      {
+        if((ranges[pos - 3] == 0.0f) || (ranges[pos - 2] == 0.0f) || (ranges[pos - 1] == 0.0f))
+        {
+            continue;
+        }
+
+        if((intensities[pos - 3] == 0x00u) || (intensities[pos - 2] == 0x00u) || (intensities[pos - 1] == 0x00u))
+        {
+            continue;
+        }
+
+        if((ranges[pos + 3] == 0.0f) || (ranges[pos + 2] == 0.0f) || (ranges[pos + 1] == 0.0f))
+        {
+            continue;
+        }
+
+        if((intensities[pos + 3] == 0x00u) || (intensities[pos + 2] == 0x00u) || (intensities[pos + 1] == 0x00u))
+        {
+            continue;
+        }
+
+        /* check  three point of before */
+        mean_of_pre_dist = (ranges[pos - 3] + ranges[pos - 2] + ranges[pos - 1]) / 3.0f;
+        if((abs(ranges[pos] - mean_of_pre_dist) > TRAILING_POINT_MIN_DIST_OFFSET ) && (abs(ranges[pos] - mean_of_pre_dist) < TRAILING_POINT_MAX_DIST_OFFSET ) )
+        {
+            /* pulse mean error less than 0.6*mean */
+              mean_of_pre_pulse = (intensities[pos - 3] + intensities[pos - 2] + intensities[pos - 1]) / 3.0f;
+            if(intensities[pos] < mean_of_pre_pulse * TRAILING_POINT_POW_FACTOR)
+            {
+                ranges[pos] = 0.0f;
+                continue;
+            }
+        }
+
+        /* check  three point of after */
+        mean_of_sub_dist = (ranges[pos + 3] + ranges[pos + 2] + ranges[pos + 1]) / 3.0f;
+        if((abs(ranges[pos] - mean_of_sub_dist) > TRAILING_POINT_MIN_DIST_OFFSET ) && (abs(ranges[pos] - mean_of_sub_dist) < TRAILING_POINT_MAX_DIST_OFFSET ) )
+        {
+            /* pulse mean error less than 0.6*mean */
+              mean_of_sub_pulse = (intensities[pos + 3] + intensities[pos + 2] + intensities[pos + 1]) / 3.0f;
+            if(intensities[pos] < mean_of_sub_pulse * TRAILING_POINT_POW_FACTOR)
+            {
+                ranges[pos] = 0.0f;
+            }
+
+        }
+      }
+
+#if 1      
+      /* smoothing filter */
+    
+      if(abs(ranges[pos-2] - ranges[pos-1] < POINT_CLOUD_DIST_SMOOTHING_FILTER_LIMIT_VALUE))
+      {
+          if(abs(ranges[pos-1] - ranges[pos] < POINT_CLOUD_DIST_SMOOTHING_FILTER_LIMIT_VALUE))
+          {
+              if(abs(ranges[pos] - ranges[pos+1] < POINT_CLOUD_DIST_SMOOTHING_FILTER_LIMIT_VALUE) )
+              {
+                  if(abs(ranges[pos] - ranges[pos+2] < POINT_CLOUD_DIST_SMOOTHING_FILTER_LIMIT_VALUE) )
+                  {
+                      ret = 1;
+                  }
+
+              }
+
+          }
+      }
+      if(ret == 1)
+      {
+          ret = 0x00;
+          ranges[pos] = (ranges[pos -2] + ranges[pos -1] + ranges[pos ]+ ranges[pos + 1]+ranges[pos +2])/5.0f;
+          uint16_t avg_of_pulse = (intensities[pos - 1 ] + intensities[pos -2 ] + intensities[pos] + intensities[pos + 1 ] + intensities[pos + 2 ]) /5 ;
+          if(abs(intensities[pos] - avg_of_pulse >   POINT_CLOUD_PULSE_SMOOTHING_FILTER_LIMIT_VALUE))
+          {
+              intensities[pos] = avg_of_pulse;
+          }
+      
+      
+      }
+      ret = 0x00;
+#endif 
+
+    }
+
+#endif 
+
+}
+
+
 
 inline void SourceDriver::PutException(const lidar::Error& msg)
 {

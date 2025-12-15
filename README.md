@@ -114,6 +114,7 @@ lidar:
       pcap_file: /path/to/your/pcap/file.pcap   # pcap文件路径
       pcap_repeat: true                         # pcap文件是否循环播放
       pcap_rate: 20.0                           # pcap文件循环播放速度
+      enable_point_cloud_filter : true          # 是否开启拖尾滤波算法
 
     ros:
       ros_frame_id: base_laser                            # ROS坐标系ID
